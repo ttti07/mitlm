@@ -72,6 +72,7 @@ public:
 
     void   SetOrder(size_t order) { _order = order; }
     void   LoadCorpus(ZFile &corpusFile);
+    void   LoadSentence(const std::string &sentence);
     double ComputeEntropy(const ParamVector &params);
     double ComputePerplexity(const ParamVector &params)
     { return std::exp(ComputeEntropy(params)); }

@@ -57,6 +57,25 @@ PerplexityOptimizer::LoadCorpus(ZFile &corpusFile) {
     _mask = _lm.GetMask(probMaskVectors, bowMaskVectors);
 }
 
+
+void
+PerplexityOptimizer::LoadSentence(const std::string &sentence) {
+    //const CountVector &counts(_lm.counts(1));
+    //BitVector vocabMask = (_lm.counts > 0);
+    BitVector vocabMask(_lm.vocab().size(), 1);
+
+    _lm._pModel->LoadEvalSentence(_probCountVectors, _bowCountVectors,
+                                vocabMask, sentence, _numOOV, _numWords);
+
+    vector<BitVector> probMaskVectors(_order + 1);
+    vector<BitVector> bowMaskVectors(_order);
+    for (size_t o = 0; o <= _order; o++)
+        probMaskVectors[o] = (_probCountVectors[o] > 0);
+    for (size_t o = 0; o < _order; o++)
+        bowMaskVectors[o] = (_bowCountVectors[o] > 0);
+    _mask = _lm.GetMask(probMaskVectors, bowMaskVectors);
+}
+
 double
 PerplexityOptimizer::ComputeEntropy(const ParamVector &params) {
     // Estimate model.

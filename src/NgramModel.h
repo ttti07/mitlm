@@ -81,7 +81,11 @@ public:
     void   LoadEvalCorpus(vector<CountVector> &probCountVectors,
                           vector<CountVector> &bowCountVectors,
                           BitVector &vocabMask, ZFile &corpusFile,
-                          size_t &outNumOOV, size_t &outNumWords) const;
+                          size_t &outNumOOV, size_t &outNumWords) const; 
+    void   LoadEvalSentence(vector<CountVector> &probCountVectors,
+                          vector<CountVector> &bowCountVectors,
+                          BitVector &vocabMask, const std::string &sentence,
+                          size_t &outNumOOV, size_t &outNumWords);
     void   LoadFeatures(vector<DoubleVector> &featureVectors,
                         ZFile &featureFile, size_t maxOrder=0) const;
     void   LoadComputedFeatures(vector<DoubleVector> &featureVectors,

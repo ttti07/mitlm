@@ -505,6 +505,78 @@ NgramModel::LoadEvalCorpus(vector<CountVector> &probCountVectors,
 }
 
 void
+NgramModel::LoadEvalSentence(vector<CountVector> &probCountVectors,
+                           vector<CountVector> &bowCountVectors,
+                           BitVector &vocabMask,
+                           const std::string &sentence,
+                           size_t &outNumOOV,
+                           size_t &outNumWords) {
+    if (sentence.empty()) throw std::invalid_argument("Invalid file");
+
+    // Allocate count vectors.
+    probCountVectors.resize(size());
+    bowCountVectors.resize(size() - 1);
+    for (size_t i = 0; i < size(); i++)
+        probCountVectors[i].reset(_vectors[i].size(), 0);
+    for (size_t i = 0; i < size() - 1; i++)
+        bowCountVectors[i].reset(_vectors[i].size(), 0);
+
+    // Accumulate counts of prob/bow for computing perplexity of corpusFilename.
+    size_t                  numOOV = 0;
+    size_t                  numWords = 0;
+    vector<VocabIndex> words(256);
+
+    // Lookup vocabulary indices for each word in the line.
+    words.clear();
+    words.push_back(Vocab::EndOfSentence);
+    
+    size_t ps = 0;
+    size_t pe = sentence.find_first_of(" ", ps);
+    while (pe != std::string::npos) {
+        const auto token = sentence.substr(ps,pe-ps); 
+        size_t len = token.size();
+        words.push_back(_vocab.Find(token.c_str(), len));
+        ps = pe+1;
+
+        if(sentence.size() <= ps)
+            break;
+        pe = sentence.find_first_of(" ", ps);
+
+        if (pe == std::string::npos) {
+            const auto token = sentence.substr(ps,pe-ps); 
+            size_t len = token.size();
+            words.push_back(_vocab.Find(token.c_str(), len));
+        }
+    }
+    words.push_back(Vocab::EndOfSentence);
+
+    // Add each top order n-gram.
+    size_t ngramOrder = std::min((size_t)2, size() - 1);
+    for (size_t i = 1; i < words.size(); i++) {
+        if (words[i] == Vocab::Invalid || !vocabMask[words[i]]) {
+            // OOV word encountered.  Reset order to unigrams.
+            ngramOrder = 1;
+            numOOV++;
+        } else {
+            NgramIndex index;
+            size_t     boOrder = ngramOrder;
+            while ((index = _Find(&words[i-boOrder+1], boOrder)) == -1) {
+                --boOrder;
+                NgramIndex hist = _Find(&words[i - boOrder], boOrder);
+                if (hist != (NgramIndex)-1)
+                    bowCountVectors[boOrder][hist]++;
+            }
+            ngramOrder = std::min(ngramOrder + 1, size() - 1);
+            probCountVectors[boOrder][index]++;
+            numWords++;
+        }
+    }
+
+    outNumOOV   = numOOV;
+    outNumWords = numWords;
+}
+
+void
 NgramModel::LoadFeatures(vector<DoubleVector> &featureVectors,
                          ZFile &featureFile, size_t maxOrder) const {
     if (featureFile == NULL) throw std::invalid_argument("Invalid file");
